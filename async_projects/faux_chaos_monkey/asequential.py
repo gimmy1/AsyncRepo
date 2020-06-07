@@ -4,15 +4,14 @@
 Tasks that monitor other tasks using `asyncio`'s `Event` object.
 Notice! This requires:
  - attrs==19.1.0
-To run:
-    $ python part-1/mayhem_9.py
-Follow along: https://roguelynn.com/words/asyncio-true-concurrency/
 """
 
 import asyncio
+import functools
 import logging
 import random
 import string
+import signal
 import uuid
 
 import attr
@@ -42,6 +41,20 @@ class PubSubMessage:
     def __attrs_post_init__(self):
         self.hostname = f"{self.instance_name}.example.net"
 
+
+async def shutdown(signal, loop):
+    """ Cleanup tasks tied to the service's shutdown. """
+    logging.info(f"Received exit signal {signal.name}...")
+    logging.info(f"Closing database connections.")
+    logging.info("Nacking outside messages")
+    tasks = [t for t in asyncio.all_tasks() if t is not 
+             asyncio.current_task()]
+    [task.cancel() for task in tasks]
+
+    logging.info(f"Cancelling {len(tasks)} outstanding tasks")
+    await asyncio.gather(*tasks)
+    logging.info(f"Flushing metrics")
+    loop.stop()
 
 
 async def publish(queue):
@@ -137,9 +150,14 @@ async def consume(queue):
 
 
 def main():
-    queue = asyncio.Queue()
     loop = asyncio.get_event_loop()
 
+    SIGNALS = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT)
+    for s in SIGNALS:
+        loop.add_signal_handler( 
+            s, lambda s=s: asyncio.create_task(shutdown(s, loop)) # late bindings gotcha in python
+        )
+    queue = asyncio.Queue()
     try:
         loop.create_task(publish(queue))
         loop.create_task(consume(queue))
