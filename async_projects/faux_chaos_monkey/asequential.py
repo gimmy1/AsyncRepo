@@ -52,7 +52,7 @@ async def shutdown(signal, loop):
     [task.cancel() for task in tasks]
 
     logging.info(f"Cancelling {len(tasks)} outstanding tasks")
-    await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks, return_exceptions=True) # when running pkill -TERM the code will just hang because gather does not return exceptions. Update with return_exceptions=True
     logging.info(f"Flushing metrics")
     loop.stop()
 
