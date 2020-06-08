@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.7
-# Copyright (c) 2018-2019 Lynn Root
 """
 Tasks that monitor other tasks using `asyncio`'s `Event` object.
 Notice! This requires:
@@ -17,10 +16,6 @@ import uuid
 import attr
 
 
-# NB: Using f-strings with log messages may not be ideal since no matter
-# what the log level is set at, f-strings will always be evaluated
-# whereas the old form ("foo %s" % "bar") is lazily-evaluated.
-# But I just love f-strings.
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s,%(msecs)d %(levelname)s: %(message)s",
